@@ -12,6 +12,7 @@ const Settings = () => {
     currency: user?.currency || 'USD'
   });
   const [loading, setLoading] = useState(false);
+  const [processingPdf, setProcessingPdf] = useState(false);
   const [pdfData, setPdfData] = useState(null);
   const [extractedTransactions, setExtractedTransactions] = useState([]);
   const [analysisMethod, setAnalysisMethod] = useState(null);
@@ -47,22 +48,30 @@ const Settings = () => {
     setLoading(true);
     setPdfData(null);
     setExtractedTransactions([]);
+    setProcessingPdf(false);
 
     try {
       // Upload y extraer texto
+      toast.loading('Subiendo PDF...');
       const uploadRes = await axios.post('/api/pdfs/upload', uploadFormData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       setPdfData(uploadRes.data.data);
+      toast.dismiss();
       toast.success(`PDF cargado: ${uploadRes.data.data.pages} páginas procesadas`);
 
-      // Procesar y extraer transacciones
+      // Procesar y extraer transacciones con IA
+      setProcessingPdf(true);
+      const loadingToast = toast.loading('🤖 Analizando transacciones con IA...');
+      
       const processRes = await axios.post('/api/pdfs/process', {
         text: uploadRes.data.data.text,
-        fileId: uploadRes.data.data.id
+        fileId: uploadRes.data.data.id,
+        currency: formData.currency
       });
 
+      toast.dismiss(loadingToast);
       setAnalysisMethod(processRes.data.data.method);
       
       if (processRes.data.data.transactions.length > 0) {
@@ -73,20 +82,23 @@ const Settings = () => {
         toast.info('No se detectaron transacciones automáticamente. Revisa el formato del PDF.');
       }
     } catch (error) {
+      toast.dismiss();
       toast.error(error.response?.data?.message || 'Error al procesar PDF');
     } finally {
       setLoading(false);
+      setProcessingPdf(false);
     }
   };
 
   const handleImportTransaction = async (transaction) => {
     try {
       await axios.post('/api/transactions', {
-        type: 'expense', // Por defecto gastos, el usuario puede cambiar después
+        type: transaction.type || 'expense',
         amount: transaction.amount,
         description: transaction.description,
         date: transaction.date,
-        currency: formData.currency,
+        currency: transaction.currency || formData.currency,
+        categoryId: transaction.categoryId,
         source: 'pdf'
       });
 
@@ -94,7 +106,7 @@ const Settings = () => {
       // Remover de la lista
       setExtractedTransactions(prev => prev.filter(t => t !== transaction));
     } catch (error) {
-      toast.error('Error al importar transacción');
+      toast.error(error.response?.data?.message || 'Error al importar transacción');
     }
   };
 
@@ -223,8 +235,21 @@ const Settings = () => {
             </div>
           )}
 
+          {/* Loading Análisis IA */}
+          {processingPdf && (
+            <div className="mt-4 p-6 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div>
+                  <h3 className="font-semibold text-blue-900">Analizando con Inteligencia Artificial...</h3>
+                  <p className="text-sm text-blue-700 mt-1">Esto puede tomar 10-30 segundos. La IA está leyendo y comprendiendo el documento.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Transacciones Detectadas */}
-          {extractedTransactions.length > 0 && (
+          {extractedTransactions.length > 0 && !processingPdf && (
             <div className="mt-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -239,17 +264,32 @@ const Settings = () => {
               </div>
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {extractedTransactions.map((trans, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-purple-300 transition">
+                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-purple-300 transition">
                     <div className="flex-1">
-                      <p className="font-medium text-gray-900">{trans.description}</p>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                        <span>💰 ${parseFloat(trans.amount || 0).toFixed(2)}</span>
+                      <div className="flex items-center gap-2 mb-2">
+                        <p className="font-medium text-gray-900">{trans.description}</p>
+                        {trans.type === 'income' && (
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Ingreso</span>
+                        )}
+                        {trans.type === 'expense' && (
+                          <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">Gasto</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          💰 <strong>{trans.currency || formData.currency}</strong> ${parseFloat(trans.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
                         <span>📅 {new Date(trans.date).toLocaleDateString()}</span>
+                        {trans.suggestedCategory && (
+                          <span className="flex items-center gap-1">
+                            📂 <span className="text-purple-600 font-medium">{trans.suggestedCategory}</span>
+                          </span>
+                        )}
                       </div>
                     </div>
                     <button
                       onClick={() => handleImportTransaction(trans)}
-                      className="ml-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium flex items-center gap-2"
+                      className="ml-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium flex items-center gap-2 whitespace-nowrap"
                     >
                       <CheckCircle size={16} />
                       Importar
@@ -259,7 +299,7 @@ const Settings = () => {
               </div>
               <div className="mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                 <p className="text-sm text-yellow-800">
-                  ℹ️ <strong>Nota:</strong> Revisa cada transacción antes de importar. Las transacciones se importarán como "gastos" por defecto. Puedes editarlas después desde la sección de Transacciones.
+                  ℹ️ <strong>Nota:</strong> Revisa cada transacción antes de importar. La IA ha sugerido el tipo (ingreso/gasto) y categoría basándose en la descripción. Puedes editarlas después desde Transacciones.
                 </p>
               </div>
             </div>

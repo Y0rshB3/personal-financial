@@ -11,13 +11,32 @@ if (process.env.OPENAI_API_KEY) {
 /**
  * Analiza texto de PDF bancario usando IA para extraer transacciones
  * Funciona con cualquier formato de estado de cuenta
+ * @param {string} text - Texto extraído del PDF
+ * @param {Array} userCategories - Categorías del usuario desde la BD
  */
-exports.analyzeTransactionsWithAI = async (text) => {
+exports.analyzeTransactionsWithAI = async (text, userCategories = []) => {
   if (!openai) {
     throw new Error('OpenAI API key no configurada. Agrega OPENAI_API_KEY en .env');
   }
 
   try {
+    // Formatear categorías del usuario
+    const expenseCategories = userCategories
+      .filter(c => c.type === 'expense')
+      .map(c => `"${c.name}" ${c.icon}`)
+      .join(', ');
+    
+    const incomeCategories = userCategories
+      .filter(c => c.type === 'income')
+      .map(c => `"${c.name}" ${c.icon}`)
+      .join(', ');
+    
+    // Crear mapa de categorías con IDs
+    const categoryMap = {};
+    userCategories.forEach(c => {
+      categoryMap[c.name] = c.id;
+    });
+
     const prompt = `Eres un experto en análisis de estados de cuenta bancarios. Analiza el siguiente texto extraído de un PDF bancario y extrae TODAS las transacciones que encuentres.
 
 IMPORTANTE:
@@ -30,13 +49,23 @@ IMPORTANTE:
 - Si el monto es negativo ($-123.45), es un GASTO (expense)
 - Si el monto es positivo ($123.45), es un INGRESO (income)
 - Ignora encabezados, totales, balances finales, números de cuenta
+- IMPORTANTE: Usa SOLO las categorías del usuario proporcionadas abajo
 
-EJEMPLOS DE TEXTO MAL FORMATEADO:
-"2025-09-06Compra en linea$-108,080.835520,310.07"
-Aquí la transacción es: Fecha=2025-09-06, Descripción="Compra en linea", Monto=108080.83, Type=expense
+CATEGORÍAS DEL USUARIO (USA SOLO ESTAS):
+GASTOS: ${expenseCategories || 'Ninguna definida'}
+INGRESOS: ${incomeCategories || 'Ninguna definida'}
 
-"2025-09-11Pago suscripción$197,392.285508,934.12"  
-Aquí la transacción es: Fecha=2025-09-11, Descripción="Pago suscripción", Monto=197392.28, Type=income
+INSTRUCCIONES PARA CATEGORÍAS:
+- Analiza la descripción de cada transacción
+- Asigna la categoría MÁS APROPIADA de las disponibles
+- Si no hay coincidencia clara, usa "Otros" si existe
+- NO inventes categorías nuevas
+
+EJEMPLOS:
+"Compra en linea" → Si existe "Compras", úsala
+"Supermercado" → Si existe "Alimentación", úsala
+"Gasolina" → Si existe "Transporte", úsala
+"Netflix" → Si existe "Entretenimiento", úsala
 
 TEXTO DEL PDF:
 ${text.substring(0, 4000)}
@@ -48,7 +77,9 @@ Responde con un JSON que contenga un array "transactions":
       "date": "YYYY-MM-DD",
       "amount": 123.45,
       "description": "Descripción",
-      "type": "expense"
+      "type": "expense",
+      "suggestedCategory": "Alimentación",
+      "currency": "USD"
     }
   ]
 }
@@ -106,14 +137,26 @@ Si no encuentras transacciones, responde: {"transactions": []}`;
     // Validar y formatear transacciones
     const validTransactions = transactions
       .filter(t => t.date && t.amount && t.description)
-      .map(t => ({
-        date: new Date(t.date),
-        amount: parseFloat(t.amount),
-        description: t.description.trim(),
-        type: t.type || 'expense',
-        imported: false
-      }));
+      .map(t => {
+        // Buscar el ID de la categoría sugerida
+        const categoryId = categoryMap[t.suggestedCategory] || null;
+        
+        return {
+          date: new Date(t.date),
+          amount: parseFloat(t.amount),
+          description: t.description.trim(),
+          type: t.type || 'expense',
+          currency: t.currency || 'USD',
+          suggestedCategory: t.suggestedCategory || null,
+          categoryId: categoryId,
+          imported: false
+        };
+      });
 
+    console.log(`✅ Transacciones válidas procesadas: ${validTransactions.length}`);
+    if (validTransactions.length > 0) {
+      console.log(`📊 Ejemplo: ${validTransactions[0].description} → ${validTransactions[0].suggestedCategory}`);
+    }
     return validTransactions;
   } catch (error) {
     console.error('Error with OpenAI API:', error);
