@@ -11,16 +11,31 @@ const Dashboard = () => {
   const [stats, setStats] = useState({ income: 0, expense: 0, balance: 0, transactions: 0 });
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState('1'); // Meses: 1, 2, 3, 4, 6, 12
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [period]);
+
+  const getDateRange = () => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - parseInt(period));
+    
+    return {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0]
+    };
+  };
 
   const fetchData = async () => {
+    setLoading(true);
     try {
+      const { startDate, endDate } = getDateRange();
+      
       const [statsRes, transRes] = await Promise.all([
-        axios.get('/api/transactions/stats'),
-        axios.get('/api/transactions?limit=5')
+        axios.get(`/api/transactions/stats?startDate=${startDate}&endDate=${endDate}`),
+        axios.get(`/api/transactions?limit=5&startDate=${startDate}&endDate=${endDate}`)
       ]);
 
       setStats(statsRes.data.data);
@@ -53,7 +68,26 @@ const Dashboard = () => {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-800 mb-8">Dashboard</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+        
+        {/* Filtro de Período */}
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700">Período:</label>
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="px-4 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-primary"
+          >
+            <option value="1">Mes actual</option>
+            <option value="2">Últimos 2 meses</option>
+            <option value="3">Últimos 3 meses</option>
+            <option value="4">Últimos 4 meses</option>
+            <option value="6">Últimos 6 meses</option>
+            <option value="12">Último año</option>
+          </select>
+        </div>
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

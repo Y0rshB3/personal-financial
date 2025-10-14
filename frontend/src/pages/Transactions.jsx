@@ -8,6 +8,7 @@ const Transactions = () => {
   const [categories, setCategories] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [period, setPeriod] = useState('1'); // Filtro de período
   const [formData, setFormData] = useState({
     type: 'expense',
     amount: '',
@@ -19,11 +20,23 @@ const Transactions = () => {
   useEffect(() => {
     fetchTransactions();
     fetchCategories();
-  }, []);
+  }, [period]);
+
+  const getDateRange = () => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - parseInt(period));
+    
+    return {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0]
+    };
+  };
 
   const fetchTransactions = async () => {
     try {
-      const res = await axios.get('/api/transactions');
+      const { startDate, endDate } = getDateRange();
+      const res = await axios.get(`/api/transactions?startDate=${startDate}&endDate=${endDate}`);
       setTransactions(res.data.data);
     } catch (error) {
       toast.error('Error al cargar transacciones');
@@ -88,13 +101,33 @@ const Transactions = () => {
     <div>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800">Transacciones</h1>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
-        >
-          <Plus size={20} />
-          Nueva Transacción
-        </button>
+        
+        <div className="flex items-center gap-4">
+          {/* Filtro de Período */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Período:</label>
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              className="px-4 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-primary"
+            >
+              <option value="1">Mes actual</option>
+              <option value="2">Últimos 2 meses</option>
+              <option value="3">Últimos 3 meses</option>
+              <option value="4">Últimos 4 meses</option>
+              <option value="6">Últimos 6 meses</option>
+              <option value="12">Último año</option>
+            </select>
+          </div>
+          
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+          >
+            <Plus size={20} />
+            Nueva Transacción
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
