@@ -22,26 +22,38 @@ exports.analyzeTransactionsWithAI = async (text) => {
 
 IMPORTANTE:
 - Identifica cada transacción sin importar el formato del banco
-- Extrae: fecha, monto (como número positivo) y descripción
-- Las fechas pueden estar en cualquier formato (DD/MM/YYYY, MM-DD-YYYY, etc.)
-- Los montos pueden tener o no símbolo de moneda ($, €, etc.)
-- Ignora encabezados, totales, balances y texto no relacionado con transacciones
-- Si hay múltiples columnas, identifica cuál es la columna de transacciones
+- El texto puede estar MAL FORMATEADO (sin espacios, columnas pegadas)
+- Busca patrones como: FECHA + DESCRIPCIÓN + MONTO
+- Las fechas pueden estar en formato YYYY-MM-DD, DD/MM/YYYY, etc.
+- Los montos pueden tener $, comas, puntos, negativos
+- Extrae el MONTO como número positivo (ignora el signo negativo si es gasto)
+- Si el monto es negativo ($-123.45), es un GASTO (expense)
+- Si el monto es positivo ($123.45), es un INGRESO (income)
+- Ignora encabezados, totales, balances finales, números de cuenta
+
+EJEMPLOS DE TEXTO MAL FORMATEADO:
+"2025-09-06Compra en linea$-108,080.835520,310.07"
+Aquí la transacción es: Fecha=2025-09-06, Descripción="Compra en linea", Monto=108080.83, Type=expense
+
+"2025-09-11Pago suscripción$197,392.285508,934.12"  
+Aquí la transacción es: Fecha=2025-09-11, Descripción="Pago suscripción", Monto=197392.28, Type=income
 
 TEXTO DEL PDF:
 ${text.substring(0, 4000)}
 
-Responde ÚNICAMENTE con un JSON array válido en este formato:
-[
-  {
-    "date": "YYYY-MM-DD",
-    "amount": 123.45,
-    "description": "Descripción de la transacción",
-    "type": "expense" o "income"
-  }
-]
+Responde con un JSON que contenga un array "transactions":
+{
+  "transactions": [
+    {
+      "date": "YYYY-MM-DD",
+      "amount": 123.45,
+      "description": "Descripción",
+      "type": "expense"
+    }
+  ]
+}
 
-Si no encuentras transacciones, responde con un array vacío: []`;
+Si no encuentras transacciones, responde: {"transactions": []}`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4-turbo-preview",
@@ -61,18 +73,33 @@ Si no encuentras transacciones, responde con un array vacío: []`;
     });
 
     const responseText = completion.choices[0].message.content;
+    console.log('📄 Respuesta de OpenAI:', responseText.substring(0, 500));
     
     // Parsear la respuesta JSON
     let transactions = [];
     try {
       const parsed = JSON.parse(responseText);
-      transactions = Array.isArray(parsed) ? parsed : parsed.transactions || [];
+      console.log('✅ JSON parseado correctamente');
+      
+      // Manejar diferentes formatos de respuesta
+      if (Array.isArray(parsed)) {
+        transactions = parsed;
+      } else if (parsed.transactions && Array.isArray(parsed.transactions)) {
+        transactions = parsed.transactions;
+      } else if (parsed.data && Array.isArray(parsed.data)) {
+        transactions = parsed.data;
+      }
     } catch (e) {
-      console.error('Error parsing AI response:', e);
+      console.error('❌ Error parsing AI response:', e.message);
       // Intentar extraer JSON del texto
-      const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+      const jsonMatch = responseText.match(/\{[\s\S]*"transactions"[\s\S]*\]/);
       if (jsonMatch) {
-        transactions = JSON.parse(jsonMatch[0]);
+        try {
+          const parsed = JSON.parse(jsonMatch[0] + '}');
+          transactions = parsed.transactions || [];
+        } catch (e2) {
+          console.error('❌ Error en segundo intento:', e2.message);
+        }
       }
     }
 
