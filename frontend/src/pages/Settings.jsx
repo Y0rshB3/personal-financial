@@ -14,6 +14,7 @@ const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [pdfData, setPdfData] = useState(null);
   const [extractedTransactions, setExtractedTransactions] = useState([]);
+  const [analysisMethod, setAnalysisMethod] = useState(null);
 
   const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'MXN', 'ARS', 'COP', 'CLP'];
 
@@ -62,9 +63,12 @@ const Settings = () => {
         fileId: uploadRes.data.data.id
       });
 
+      setAnalysisMethod(processRes.data.data.method);
+      
       if (processRes.data.data.transactions.length > 0) {
         setExtractedTransactions(processRes.data.data.transactions);
-        toast.success(`${processRes.data.data.found} transacciones detectadas`);
+        const methodText = processRes.data.data.method === 'ai' ? '🤖 IA' : '📝 Regex';
+        toast.success(`${methodText}: ${processRes.data.data.found} transacciones detectadas`);
       } else {
         toast.info('No se detectaron transacciones automáticamente. Revisa el formato del PDF.');
       }
@@ -198,6 +202,9 @@ const Settings = () => {
                   <div className="text-sm text-purple-800 space-y-1">
                     <p><strong>Páginas:</strong> {pdfData.pages}</p>
                     <p><strong>Caracteres extraídos:</strong> {pdfData.text?.length || 0}</p>
+                    {analysisMethod && (
+                      <p><strong>Método de análisis:</strong> {analysisMethod === 'ai' ? '🤖 Inteligencia Artificial (GPT-4)' : '📝 Expresiones regulares'}</p>
+                    )}
                   </div>
                   
                   {/* Mostrar preview del texto */}
@@ -219,10 +226,17 @@ const Settings = () => {
           {/* Transacciones Detectadas */}
           {extractedTransactions.length > 0 && (
             <div className="mt-4">
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <CheckCircle className="text-green-600" size={20} />
-                Transacciones Detectadas ({extractedTransactions.length})
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <CheckCircle className="text-green-600" size={20} />
+                  Transacciones Detectadas ({extractedTransactions.length})
+                </h3>
+                {analysisMethod === 'ai' && (
+                  <span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">
+                    🤖 Detectadas con IA
+                  </span>
+                )}
+              </div>
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {extractedTransactions.map((trans, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-purple-300 transition">

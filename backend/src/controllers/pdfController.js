@@ -2,6 +2,7 @@ const pdf = require('pdf-parse');
 const fs = require('fs');
 const ProcessedFile = require('../models/mongodb/ProcessedFile');
 const ActivityLog = require('../models/mongodb/ActivityLog');
+const { analyzeTransactionsWithAI, analyzeTransactionsWithRegex } = require('../services/aiService');
 
 // @desc    Upload PDF
 // @route   POST /api/pdfs/upload
@@ -59,30 +60,31 @@ exports.uploadPDF = async (req, res, next) => {
 };
 
 // @desc    Process PDF and extract transactions
-// @route   POST /api/pdfs/process/:id
+// @route   POST /api/pdfs/process
 // @access  Private
 exports.processPDF = async (req, res, next) => {
   try {
     const { text, fileId } = req.body;
     
-    // Simple pattern matching for transaction extraction
-    // This is a basic example - real implementation would be more sophisticated
-    const lines = text.split('\n');
-    const transactions = [];
+    let transactions = [];
+    let method = 'regex'; // Por defecto usa regex
     
-    // Pattern example: Date Amount Description
-    const transactionPattern = /(\d{1,2}\/\d{1,2}\/\d{2,4})\s+(\$?\d+\.?\d*)\s+(.+)/;
-    
-    for (const line of lines) {
-      const match = line.match(transactionPattern);
-      if (match) {
-        transactions.push({
-          date: new Date(match[1]),
-          amount: parseFloat(match[2].replace('$', '')),
-          description: match[3].trim(),
-          imported: false
-        });
+    // Intentar con IA si está configurada OpenAI
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        console.log('🤖 Analizando PDF con IA (OpenAI GPT)...');
+        transactions = await analyzeTransactionsWithAI(text);
+        method = 'ai';
+        console.log(`✅ IA detectó ${transactions.length} transacciones`);
+      } catch (aiError) {
+        console.warn('⚠️  Error con IA, usando método regex fallback:', aiError.message);
+        // Si falla la IA, usar regex como fallback
+        transactions = analyzeTransactionsWithRegex(text);
       }
+    } else {
+      // Si no hay API key, usar regex mejorado
+      console.log('📝 Analizando PDF con regex (sin OpenAI configurado)');
+      transactions = analyzeTransactionsWithRegex(text);
     }
 
     // Update processed file in MongoDB
@@ -90,15 +92,28 @@ exports.processPDF = async (req, res, next) => {
       await ProcessedFile.findByIdAndUpdate(fileId, {
         processedTransactions: transactions,
         status: 'completed',
-        processedAt: new Date()
+        processedAt: new Date(),
+        analysisMethod: method
       });
     }
+
+    // Log activity
+    await ActivityLog.create({
+      userId: req.user.id,
+      action: 'process_pdf',
+      details: { 
+        fileId,
+        transactionsFound: transactions.length,
+        method
+      }
+    });
 
     res.json({
       success: true,
       data: {
         found: transactions.length,
-        transactions
+        transactions,
+        method
       }
     });
   } catch (error) {
