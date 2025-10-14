@@ -52,7 +52,7 @@ const Categories = () => {
   };
 
   const handleEdit = (category) => {
-    setEditingId(category._id);
+    setEditingId(category.id || category._id);
     setFormData({
       name: category.name,
       type: category.type,
@@ -90,7 +90,7 @@ const Categories = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {categories.map((cat) => (
-          <div key={cat._id} className="bg-white p-6 rounded-xl shadow-md border-l-4" style={{ borderColor: cat.color }}>
+          <div key={cat.id || cat._id} className="bg-white p-6 rounded-xl shadow-md border-l-4" style={{ borderColor: cat.color }}>
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <span className="text-3xl">{cat.icon}</span>
@@ -111,7 +111,7 @@ const Categories = () => {
                   <Pencil size={18} />
                 </button>
                 <button
-                  onClick={() => handleDelete(cat._id)}
+                  onClick={() => handleDelete(cat.id || cat._id)}
                   className="text-red-600 hover:text-red-800"
                 >
                   <Trash2 size={18} />
