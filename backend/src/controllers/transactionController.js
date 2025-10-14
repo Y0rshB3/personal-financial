@@ -1,6 +1,7 @@
-const { Transaction, Category } = require('../models/postgres');
+const { Transaction, Category, User } = require('../models/postgres');
 const ActivityLog = require('../models/mongodb/ActivityLog');
 const { Op } = require('sequelize');
+const { convertAmount } = require('../services/currencyService');
 
 // @desc    Get all transactions
 // @route   GET /api/transactions
@@ -149,52 +150,73 @@ exports.deleteTransaction = async (req, res, next) => {
   }
 };
 
-// @desc    Get transaction statistics
+// @desc    Get transaction statistics (convertidas a moneda preferida)
 // @route   GET /api/transactions/stats
 // @access  Private
 exports.getStats = async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
     
+    // Obtener la moneda preferida del usuario
+    const user = await User.findByPk(req.user.id);
+    const preferredCurrency = user?.currency || 'USD';
+
+    console.log(`📊 Calculando stats para usuario ${req.user.id} en ${preferredCurrency}`);
+    
     let where = { userId: req.user.id };
     if (startDate && endDate) {
       where.date = { [Op.between]: [new Date(startDate), new Date(endDate)] };
     }
 
-    const { sequelize } = require('../config/postgres');
-    
-    const stats = await Transaction.findAll({
+    // Obtener TODAS las transacciones para convertir individualmente
+    const transactions = await Transaction.findAll({
       where,
-      attributes: [
-        'type',
-        [sequelize.fn('SUM', sequelize.col('amount')), 'total'],
-        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
-      ],
-      group: ['type'],
+      attributes: ['id', 'type', 'amount', 'currency', 'date'],
       raw: true
     });
+
+    console.log(`💰 Procesando ${transactions.length} transacciones`);
 
     const result = {
       income: 0,
       expense: 0,
       balance: 0,
-      transactions: 0
+      transactions: transactions.length,
+      currency: preferredCurrency // Indicar la moneda de los totales
     };
 
-    stats.forEach(stat => {
-      if (stat.type === 'income') {
-        result.income = parseFloat(stat.total);
-        result.transactions += parseInt(stat.count);
-      } else if (stat.type === 'expense') {
-        result.expense = parseFloat(stat.total);
-        result.transactions += parseInt(stat.count);
+    // Convertir cada transacción a la moneda preferida usando tipo histórico
+    for (const trans of transactions) {
+      const fromCurrency = trans.currency || 'USD';
+      const transDate = new Date(trans.date);
+      
+      // Convertir monto usando tipo de cambio histórico
+      const convertedAmount = await convertAmount(
+        parseFloat(trans.amount),
+        fromCurrency,
+        preferredCurrency,
+        transDate
+      );
+
+      if (trans.type === 'income') {
+        result.income += convertedAmount;
+      } else if (trans.type === 'expense') {
+        result.expense += convertedAmount;
       }
-    });
+    }
 
     result.balance = result.income - result.expense;
 
+    // Redondear a 2 decimales
+    result.income = Math.round(result.income * 100) / 100;
+    result.expense = Math.round(result.expense * 100) / 100;
+    result.balance = Math.round(result.balance * 100) / 100;
+
+    console.log(`✅ Stats calculadas: Income=${result.income} ${preferredCurrency}, Expense=${result.expense} ${preferredCurrency}`);
+
     res.json({ success: true, data: result });
   } catch (error) {
+    console.error('❌ Error calculando stats:', error);
     next(error);
   }
 };

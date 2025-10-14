@@ -93,19 +93,20 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           title="Balance Total"
-          value={`$${parseFloat(stats.balance || 0).toFixed(2)}`}
+          value={`${stats.currency || 'USD'} $${parseFloat(stats.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon={<DollarSign />}
           color="blue"
+          subtitle={stats.currency ? `Convertido a ${stats.currency}` : ''}
         />
         <StatCard
           title="Ingresos"
-          value={`$${parseFloat(stats.income || 0).toFixed(2)}`}
+          value={`${stats.currency || 'USD'} $${parseFloat(stats.income || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon={<TrendingUp />}
           color="green"
         />
         <StatCard
           title="Gastos"
-          value={`$${parseFloat(stats.expense || 0).toFixed(2)}`}
+          value={`${stats.currency || 'USD'} $${parseFloat(stats.expense || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon={<TrendingDown />}
           color="red"
         />
@@ -160,7 +161,7 @@ const Dashboard = () => {
   );
 };
 
-const StatCard = ({ title, value, icon, color }) => {
+const StatCard = ({ title, value, icon, color, subtitle }) => {
   const colors = {
     blue: 'bg-blue-500',
     green: 'bg-green-500',
@@ -177,6 +178,9 @@ const StatCard = ({ title, value, icon, color }) => {
       </div>
       <h3 className="text-gray-600 text-sm font-medium mb-1">{title}</h3>
       <p className="text-2xl font-bold text-gray-800">{value}</p>
+      {subtitle && (
+        <p className="text-xs text-gray-500 mt-1 italic">{subtitle}</p>
+      )}
     </div>
   );
 };
