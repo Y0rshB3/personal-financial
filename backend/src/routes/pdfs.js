@@ -12,6 +12,6 @@ const upload = multer({
 router.use(protect);
 
 router.post('/upload', upload.single('pdf'), uploadPDF);
-router.post('/process/:id', processPDF);
+router.post('/process', processPDF);
 
 module.exports = router;
