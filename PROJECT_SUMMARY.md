@@ -327,11 +327,11 @@ cd frontend && npm install && npm run dev
 
 ## 📦 Próximos Pasos Sugeridos
 
-### Para Video Coding
+### Para Vide Coding
 1. ✅ Proyecto completo y funcional
 2. ✅ Arquitectura híbrida documentada
 3. ✅ Datos de ejemplo incluidos
-4. 📹 Grabar video mostrando:
+4. 📹 Grabar vide mostrando:
    - Arquitectura híbrida
    - Login y logs en MongoDB
    - Crear transacciones en PostgreSQL
@@ -367,7 +367,7 @@ git push -u origin main
 ✅ Docker para desarrollo y producción
 ✅ Documentación extensiva
 ✅ Datos de ejemplo incluidos
-✅ Listo para video coding
+✅ Listo para vide coding
 ✅ Listo para GitHub
 ✅ Listo para despliegue
 
@@ -405,7 +405,7 @@ Para cualquier duda:
 
 ---
 
-**Desarrollado como proyecto de video coding** 🎬
+**Desarrollado como proyecto de vide coding** 🎬
 **Stack**: Node.js + Express + React + PostgreSQL + MongoDB + Docker
 **Fecha**: 2024
 **Estado**: ✅ Producción Ready

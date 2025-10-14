@@ -155,7 +155,7 @@ personal-financial/
 2. `docker-compose.yml` - Configuración Docker
 3. `.env.production.example` - Variables de producción
 
-### 🎬 Video Coding
+### 🎬 Vide Coding
 1. [FINAL_SUMMARY.md](FINAL_SUMMARY.md) - Resumen visual
 2. [ARCHITECTURE.md](ARCHITECTURE.md) - Explicar arquitectura
 3. [START_HERE.md](START_HERE.md) - Demo rápido

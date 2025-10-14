@@ -86,7 +86,7 @@
 - [ ] **Architecture diagram**: Visual con draw.io
 - [ ] **Database schema**: ERD diagram
 - [ ] **User guide**: Manual de usuario
-- [ ] **Video tutorials**: Para usuarios finales
+- [ ] **Vide tutorials**: Para usuarios finales
 - [ ] **Developer guide**: Setup detallado para contribuidores
 
 ## 🎨 Design TODO
@@ -95,7 +95,7 @@
 - [ ] **Favicon**: Icons para web y móvil
 - [ ] **Screenshots**: Para README y marketing
 - [ ] **Landing page**: Página de presentación
-- [ ] **Demo video**: Screen recording de features
+- [ ] **Demo vide**: Screen recording de features
 
 ## 💰 Monetization (Si se desea comercializar)
 

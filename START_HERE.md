@@ -160,7 +160,7 @@ npm run seed
 
 ---
 
-## 🎬 Para Video Coding
+## 🎬 Para Vide Coding
 
 ### Demostrar arquitectura híbrida:
 
@@ -234,4 +234,4 @@ Tu sistema de finanzas está corriendo con:
 - ✅ Exportación a Excel
 - ✅ Integración de emails
 
-**¡Ahora puedes empezar a desarrollar, grabar tu video o desplegarlo!** 🚀
+**¡Ahora puedes empezar a desarrollar, grabar tu vide o desplegarlo!** 🚀

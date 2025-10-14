@@ -1,6 +1,6 @@
 # 💰 Sistema de Finanzas Personales
 
-> **Proyecto de Video Coding** - Sistema completo de gestión de finanzas personales con funcionalidades avanzadas
+> **Proyecto de Vide Coding** - Sistema completo de gestión de finanzas personales con funcionalidades avanzadas
 
 ## 📋 Descripción
 
@@ -393,7 +393,7 @@ npm test
 
 ## 🤝 Contribuciones
 
-Este es un proyecto educativo de video coding. Las contribuciones son bienvenidas:
+Este es un proyecto educativo de vide coding. Las contribuciones son bienvenidas:
 
 1. Fork el proyecto
 2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
@@ -407,7 +407,7 @@ Este proyecto está bajo la Licencia MIT - ver el archivo LICENSE para más deta
 
 ## 👨‍💻 Autor
 
-Proyecto desarrollado como demostración de video coding para aprendizaje de desarrollo full-stack.
+Proyecto desarrollado como demostración de vide coding para aprendizaje de desarrollo full-stack.
 
 ## 🙏 Agradecimientos
 
