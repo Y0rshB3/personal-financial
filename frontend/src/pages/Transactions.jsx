@@ -12,10 +12,13 @@ const Transactions = () => {
   const [formData, setFormData] = useState({
     type: 'expense',
     amount: '',
+    currency: 'USD',
     category: '',
     description: '',
     date: new Date().toISOString().split('T')[0]
   });
+
+  const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'MXN', 'ARS', 'COP', 'CLP'];
 
   useEffect(() => {
     fetchTransactions();
@@ -66,7 +69,7 @@ const Transactions = () => {
 
       setShowModal(false);
       setEditingId(null);
-      setFormData({ type: 'expense', amount: '', category: '', description: '', date: new Date().toISOString().split('T')[0] });
+      setFormData({ type: 'expense', amount: '', currency: 'USD', category: '', description: '', date: new Date().toISOString().split('T')[0] });
       fetchTransactions();
     } catch (error) {
       toast.error('Error al guardar transacción');
@@ -74,11 +77,12 @@ const Transactions = () => {
   };
 
   const handleEdit = (transaction) => {
-    setEditingId(transaction._id);
+    setEditingId(transaction.id || transaction._id);
     setFormData({
       type: transaction.type,
       amount: transaction.amount,
-      category: transaction.category._id,
+      currency: transaction.currency || 'USD',
+      category: transaction.category?.id || transaction.category?._id || transaction.categoryId,
       description: transaction.description,
       date: new Date(transaction.date).toISOString().split('T')[0]
     });
@@ -164,7 +168,11 @@ const Transactions = () => {
                 <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
                   trans.type === 'income' ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {trans.type === 'income' ? '+' : '-'}${parseFloat(trans.amount || 0).toFixed(2)}
+                  <span className="flex items-center gap-1">
+                    {trans.type === 'income' ? '+' : '-'}
+                    <span className="text-xs font-medium text-gray-600">{trans.currency || 'USD'}</span>
+                    ${parseFloat(trans.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <button
@@ -227,6 +235,20 @@ const Transactions = () => {
               </div>
 
               <div>
+                <label className="block text-sm font-medium mb-2">Moneda</label>
+                <select
+                  value={formData.currency}
+                  onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  required
+                >
+                  {currencies.map((curr) => (
+                    <option key={curr} value={curr}>{curr}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-2">Categoría</label>
                 <select
                   value={formData.category}
@@ -236,7 +258,7 @@ const Transactions = () => {
                 >
                   <option value="">Selecciona una categoría</option>
                   {categories.filter(c => c.type === formData.type).map((cat) => (
-                    <option key={cat._id} value={cat._id}>
+                    <option key={cat.id || cat._id} value={cat.id || cat._id}>
                       {cat.icon} {cat.name}
                     </option>
                   ))}
@@ -276,7 +298,7 @@ const Transactions = () => {
                   onClick={() => {
                     setShowModal(false);
                     setEditingId(null);
-                    setFormData({ type: 'expense', amount: '', category: '', description: '', date: new Date().toISOString().split('T')[0] });
+                    setFormData({ type: 'expense', amount: '', currency: 'USD', category: '', description: '', date: new Date().toISOString().split('T')[0] });
                   }}
                   className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
                 >
