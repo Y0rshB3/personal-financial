@@ -111,7 +111,7 @@ const Transactions = () => {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {transactions.map((trans) => (
-              <tr key={trans._id} className="hover:bg-gray-50">
+              <tr key={trans.id || trans._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {new Date(trans.date).toLocaleDateString()}
                 </td>
@@ -131,7 +131,7 @@ const Transactions = () => {
                 <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
                   trans.type === 'income' ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {trans.type === 'income' ? '+' : '-'}${trans.amount.toFixed(2)}
+                  {trans.type === 'income' ? '+' : '-'}${parseFloat(trans.amount || 0).toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <button
@@ -141,7 +141,7 @@ const Transactions = () => {
                     <Pencil size={18} />
                   </button>
                   <button
-                    onClick={() => handleDelete(trans._id)}
+                    onClick={() => handleDelete(trans.id || trans._id)}
                     className="text-red-600 hover:text-red-800"
                   >
                     <Trash2 size={18} />

@@ -36,7 +36,7 @@ const Dashboard = () => {
     labels: ['Ingresos', 'Gastos'],
     datasets: [
       {
-        data: [stats.income, stats.expense],
+        data: [parseFloat(stats.income || 0), parseFloat(stats.expense || 0)],
         backgroundColor: ['#10B981', '#EF4444'],
         borderWidth: 0,
       },
@@ -59,25 +59,25 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           title="Balance Total"
-          value={`$${stats.balance.toFixed(2)}`}
+          value={`$${parseFloat(stats.balance || 0).toFixed(2)}`}
           icon={<DollarSign />}
           color="blue"
         />
         <StatCard
           title="Ingresos"
-          value={`$${stats.income.toFixed(2)}`}
+          value={`$${parseFloat(stats.income || 0).toFixed(2)}`}
           icon={<TrendingUp />}
           color="green"
         />
         <StatCard
           title="Gastos"
-          value={`$${stats.expense.toFixed(2)}`}
+          value={`$${parseFloat(stats.expense || 0).toFixed(2)}`}
           icon={<TrendingDown />}
           color="red"
         />
         <StatCard
           title="Transacciones"
-          value={stats.transactions}
+          value={stats.transactions || 0}
           icon={<CreditCard />}
           color="purple"
         />
@@ -100,7 +100,7 @@ const Dashboard = () => {
           <div className="space-y-3">
             {transactions.length > 0 ? (
               transactions.map((trans) => (
-                <div key={trans._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={trans.id || trans._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <p className="font-semibold">{trans.description || 'Sin descripción'}</p>
                     <p className="text-sm text-gray-500">
@@ -112,7 +112,7 @@ const Dashboard = () => {
                       trans.type === 'income' ? 'text-green-600' : 'text-red-600'
                     }`}
                   >
-                    {trans.type === 'income' ? '+' : '-'}${trans.amount.toFixed(2)}
+                    {trans.type === 'income' ? '+' : '-'}${parseFloat(trans.amount || 0).toFixed(2)}
                   </span>
                 </div>
               ))
