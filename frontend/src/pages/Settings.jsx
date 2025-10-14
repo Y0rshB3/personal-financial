@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { User, Globe, Upload } from 'lucide-react';
+import { User, Globe, Upload, FileText, CheckCircle, XCircle } from 'lucide-react';
 
 const Settings = () => {
   const { user } = useAuth();
@@ -12,6 +12,8 @@ const Settings = () => {
     currency: user?.currency || 'USD'
   });
   const [loading, setLoading] = useState(false);
+  const [pdfData, setPdfData] = useState(null);
+  const [extractedTransactions, setExtractedTransactions] = useState([]);
 
   const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'MXN', 'ARS', 'COP', 'CLP'];
 
@@ -33,22 +35,62 @@ const Settings = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append('pdf', file);
+    if (file.size > 5242880) {
+      toast.error('El archivo es muy grande. Máximo 5MB');
+      return;
+    }
+
+    const uploadFormData = new FormData();
+    uploadFormData.append('pdf', file);
 
     setLoading(true);
+    setPdfData(null);
+    setExtractedTransactions([]);
 
     try {
-      const res = await axios.post('/api/pdfs/upload', formData, {
+      // Upload y extraer texto
+      const uploadRes = await axios.post('/api/pdfs/upload', uploadFormData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      toast.success('PDF procesado exitosamente');
-      console.log('PDF Data:', res.data);
+      setPdfData(uploadRes.data.data);
+      toast.success(`PDF cargado: ${uploadRes.data.data.pages} páginas procesadas`);
+
+      // Procesar y extraer transacciones
+      const processRes = await axios.post('/api/pdfs/process', {
+        text: uploadRes.data.data.text,
+        fileId: uploadRes.data.data.id
+      });
+
+      if (processRes.data.data.transactions.length > 0) {
+        setExtractedTransactions(processRes.data.data.transactions);
+        toast.success(`${processRes.data.data.found} transacciones detectadas`);
+      } else {
+        toast.info('No se detectaron transacciones automáticamente. Revisa el formato del PDF.');
+      }
     } catch (error) {
-      toast.error('Error al procesar PDF');
+      toast.error(error.response?.data?.message || 'Error al procesar PDF');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImportTransaction = async (transaction) => {
+    try {
+      await axios.post('/api/transactions', {
+        type: 'expense', // Por defecto gastos, el usuario puede cambiar después
+        amount: transaction.amount,
+        description: transaction.description,
+        date: transaction.date,
+        currency: formData.currency,
+        source: 'pdf'
+      });
+
+      toast.success('Transacción importada exitosamente');
+      // Remover de la lista
+      setExtractedTransactions(prev => prev.filter(t => t !== transaction));
+    } catch (error) {
+      toast.error('Error al importar transacción');
     }
   };
 
@@ -139,11 +181,98 @@ const Settings = () => {
             type="file"
             accept=".pdf"
             onChange={handleFileUpload}
-            className="w-full px-4 py-2 border rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700"
+            disabled={loading}
+            className="w-full px-4 py-2 border rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700 disabled:opacity-50"
           />
           <p className="text-xs text-gray-500 mt-2">
             Formatos soportados: PDF (máximo 5MB)
           </p>
+
+          {/* PDF Info */}
+          {pdfData && (
+            <div className="mt-4 p-4 bg-purple-50 rounded-lg">
+              <div className="flex items-start gap-3">
+                <FileText className="text-purple-600 flex-shrink-0 mt-1" size={20} />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-purple-900 mb-2">PDF Procesado</h3>
+                  <div className="text-sm text-purple-800 space-y-1">
+                    <p><strong>Páginas:</strong> {pdfData.pages}</p>
+                    <p><strong>Caracteres extraídos:</strong> {pdfData.text?.length || 0}</p>
+                  </div>
+                  
+                  {/* Mostrar preview del texto */}
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-purple-600 text-sm font-medium hover:text-purple-800">
+                      Ver texto extraído
+                    </summary>
+                    <div className="mt-2 p-3 bg-white rounded border border-purple-200 max-h-40 overflow-y-auto">
+                      <pre className="text-xs whitespace-pre-wrap text-gray-700">
+                        {pdfData.text?.substring(0, 500)}...
+                      </pre>
+                    </div>
+                  </details>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Transacciones Detectadas */}
+          {extractedTransactions.length > 0 && (
+            <div className="mt-4">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <CheckCircle className="text-green-600" size={20} />
+                Transacciones Detectadas ({extractedTransactions.length})
+              </h3>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {extractedTransactions.map((trans, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-purple-300 transition">
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{trans.description}</p>
+                      <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                        <span>💰 ${parseFloat(trans.amount || 0).toFixed(2)}</span>
+                        <span>📅 {new Date(trans.date).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleImportTransaction(trans)}
+                      className="ml-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium flex items-center gap-2"
+                    >
+                      <CheckCircle size={16} />
+                      Importar
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p className="text-sm text-yellow-800">
+                  ℹ️ <strong>Nota:</strong> Revisa cada transacción antes de importar. Las transacciones se importarán como "gastos" por defecto. Puedes editarlas después desde la sección de Transacciones.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* No transacciones detectadas */}
+          {pdfData && extractedTransactions.length === 0 && (
+            <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <div className="flex items-start gap-3">
+                <XCircle className="text-orange-600 flex-shrink-0 mt-1" size={20} />
+                <div>
+                  <h3 className="font-semibold text-orange-900 mb-1">No se detectaron transacciones</h3>
+                  <p className="text-sm text-orange-800">
+                    El PDF no contiene un formato reconocible de transacciones. Puedes:
+                  </p>
+                  <ul className="text-sm text-orange-800 mt-2 ml-4 list-disc space-y-1">
+                    <li>Agregar transacciones manualmente desde la sección "Transacciones"</li>
+                    <li>Verificar que el PDF sea un estado de cuenta bancario válido</li>
+                    <li>Intentar con un PDF de otro formato</li>
+                  </ul>
+                  <p className="text-xs text-orange-700 mt-3">
+                    <strong>Formato esperado:</strong> Fecha Monto Descripción (ej: 14/10/2025 $120.50 Supermercado)
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Info */}
