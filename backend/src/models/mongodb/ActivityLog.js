@@ -21,6 +21,7 @@ const ActivityLogSchema = new mongoose.Schema({
       'export_excel',
       'send_email',
       'upload_pdf',
+      'process_pdf',
       'update_profile'
     ]
   },
