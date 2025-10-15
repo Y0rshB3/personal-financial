@@ -136,11 +136,18 @@ const ExpectedExpenses = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Seguro que deseas eliminar este gasto esperado?')) return;
+    const expense = expectedExpenses.find(e => e.id === id);
+    const isCompleted = expense?.status === 'completed';
+    
+    const confirmMessage = isCompleted
+      ? '¿Eliminar este gasto esperado?\n\n⚠️ Esto también eliminará la transacción asociada'
+      : '¿Seguro que deseas eliminar este gasto esperado?';
+    
+    if (!window.confirm(confirmMessage)) return;
 
     try {
-      await axios.delete(`/api/expected-expenses/${id}`);
-      toast.success('Gasto esperado eliminado');
+      const response = await axios.delete(`/api/expected-expenses/${id}`);
+      toast.success(response.data.message || 'Gasto esperado eliminado');
       fetchExpectedExpenses();
       fetchStats();
     } catch (error) {
@@ -157,11 +164,12 @@ const ExpectedExpenses = () => {
     if (!window.confirm(confirmMessage)) return;
 
     try {
+      // No enviamos fecha, el backend usará la expectedDate del gasto esperado
       const response = await axios.post(`/api/expected-expenses/${expense.id}/complete`, {
         amount: expense.amount,
         currency: expense.currency,
-        description: expense.description,
-        date: new Date()
+        description: expense.description
+        // date se omite intencionalmente para usar expectedDate
       });
       
       // Mostrar mensaje según si se creó recurrencia

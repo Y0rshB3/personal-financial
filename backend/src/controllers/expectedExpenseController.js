@@ -165,16 +165,38 @@ exports.deleteExpectedExpense = async (req, res, next) => {
       return res.status(404).json({ message: 'Gasto esperado no encontrado' });
     }
 
+    // Si está completado y tiene transacción asociada, eliminarla también
+    let transactionDeleted = false;
+    if (expectedExpense.status === 'completed' && expectedExpense.transactionId) {
+      const transaction = await Transaction.findOne({
+        where: { id: expectedExpense.transactionId, userId: req.user.id }
+      });
+      
+      if (transaction) {
+        await transaction.destroy();
+        transactionDeleted = true;
+      }
+    }
+
     await expectedExpense.destroy();
 
     // Log activity
     await ActivityLog.create({
       userId: req.user.id,
       action: 'delete_expected_expense',
-      details: { expectedExpenseId: req.params.id }
+      details: { 
+        expectedExpenseId: req.params.id,
+        transactionAlsoDeleted: transactionDeleted
+      }
     });
 
-    res.json({ success: true, data: {} });
+    res.json({ 
+      success: true, 
+      message: transactionDeleted 
+        ? 'Gasto esperado y transacción asociada eliminados'
+        : 'Gasto esperado eliminado',
+      data: {} 
+    });
   } catch (error) {
     next(error);
   }
@@ -200,12 +222,15 @@ exports.completeExpectedExpense = async (req, res, next) => {
     }
 
     // Crear la transacción de gasto
+    // Usar la fecha esperada como fecha de la transacción por defecto
+    const transactionDate = req.body.date || expectedExpense.expectedDate || new Date();
+    
     const transaction = await Transaction.create({
       type: 'expense',
       amount: req.body.amount || expectedExpense.amount,
       currency: req.body.currency || expectedExpense.currency,
       description: req.body.description || expectedExpense.description || `Gasto esperado: ${expectedExpense.name}`,
-      date: req.body.date || new Date(),
+      date: transactionDate,
       source: 'manual',
       tags: expectedExpense.tags,
       userId: req.user.id,
