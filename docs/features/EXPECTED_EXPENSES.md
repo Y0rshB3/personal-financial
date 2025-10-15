@@ -11,7 +11,7 @@ Sistema de gestión de **gastos esperados** que permite planificar gastos futuro
 - **Creación de gastos esperados**: Define gastos que planeas realizar en el futuro
 - **Conversión automática**: Al marcar como "completado", se crea automáticamente una transacción de gasto
 - **Estados**: Pendiente o Completado
-- **Recurrencia**: Soporte para gastos recurrentes (diaria, semanal, mensual, anual)
+- **Recurrencia Automática**: 🔄 Gastos recurrentes se crean automáticamente al completar (diaria, semanal, mensual, anual)
 - **Alertas visuales**: Resalta gastos vencidos en rojo
 - **Estadísticas**: Dashboard con métricas de gastos pendientes y completados
 
@@ -28,9 +28,39 @@ Sistema de gestión de **gastos esperados** que permite planificar gastos futuro
 
 3. **Completar gasto**
    - Hacer clic en el botón "Completar" (✓)
-   - Se crea automáticamente una transacción
+   - Se crea automáticamente una transacción de gasto
    - El gasto esperado cambia a estado "completado"
    - Se registra la fecha de completado y el ID de transacción
+   - **Si tiene recurrencia**: Se crea automáticamente el siguiente gasto esperado 🔄
+
+### 🔄 Recurrencia Automática
+
+Cuando marcas como completado un gasto esperado con recurrencia, **automáticamente**:
+
+1. ✅ Se crea la transacción en "Transacciones"
+2. ✅ El gasto actual pasa a "Completado"
+3. 🔄 **Se crea el siguiente gasto esperado** con:
+   - Mismo nombre, monto, categoría
+   - **Nueva fecha** calculada según recurrencia
+   - Estado: Pendiente
+
+**Ejemplo - Gasto Mensual**:
+```
+Gasto: "Renta" - $1000 - Mensual - Fecha: 01/10/2025
+Usuario marca como completado ✓
+
+Resultado:
+1. Transacción creada: "Renta" - $1000 - 01/10/2025
+2. Gasto actual: Completado
+3. Nuevo gasto creado: "Renta" - $1000 - Mensual - 01/11/2025 (Pendiente)
+```
+
+**Tipos de Recurrencia**:
+- **Diaria**: Siguiente día
+- **Semanal**: +7 días
+- **Mensual**: Mismo día del próximo mes
+- **Anual**: Mismo día del próximo año
+- **Sin recurrencia**: No se crea siguiente gasto
 
 ---
 
