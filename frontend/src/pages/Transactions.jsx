@@ -42,6 +42,16 @@ const Transactions = () => {
     setDisplayAmount(formatNumber(finalValue));
   };
 
+  // Formatear fecha sin problemas de zona horaria
+  const formatDate = (dateString) => {
+    const date = new Date(dateString + 'T00:00:00'); // Forzar hora local
+    return date.toLocaleDateString('es-ES', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    });
+  };
+
   const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'MXN', 'ARS', 'COP', 'CLP'];
 
   useEffect(() => {
@@ -187,7 +197,7 @@ const Transactions = () => {
             {transactions.map((trans) => (
               <tr key={trans.id || trans._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {new Date(trans.date).toLocaleDateString()}
+                  {formatDate(trans.date)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 text-xs font-semibold rounded-full ${

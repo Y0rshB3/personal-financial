@@ -15,6 +15,24 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('1'); // Meses: 1, 2, 3, 4, 6, 12
 
+  // Formatear fecha sin problemas de zona horaria
+  const formatDate = (dateString) => {
+    const date = new Date(dateString + 'T00:00:00');
+    return date.toLocaleDateString('es-ES', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    });
+  };
+
+  // Formatear número con separadores de miles
+  const formatAmount = (amount) => {
+    return parseFloat(amount || 0).toLocaleString('en-US', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    });
+  };
+
   useEffect(() => {
     fetchData();
   }, [period]);
@@ -143,7 +161,7 @@ const Dashboard = () => {
                   <div>
                     <p className="font-semibold">{trans.description || 'Sin descripción'}</p>
                     <p className="text-sm text-gray-500">
-                      {trans.category?.name} • {new Date(trans.date).toLocaleDateString()}
+                      {trans.category?.name} • {formatDate(trans.date)}
                     </p>
                   </div>
                   <span
@@ -151,7 +169,7 @@ const Dashboard = () => {
                       trans.type === 'income' ? 'text-green-600' : 'text-red-600'
                     }`}
                   >
-                    {trans.type === 'income' ? '+' : '-'}${parseFloat(trans.amount || 0).toFixed(2)}
+                    {trans.type === 'income' ? '+' : '-'}{trans.currency || 'USD'} ${formatAmount(trans.amount)}
                   </span>
                 </div>
               ))
@@ -195,12 +213,12 @@ const Dashboard = () => {
                       )}
                     </div>
                     <p className="text-sm text-gray-500">
-                      {expense.category?.name} • {new Date(expense.expectedDate).toLocaleDateString()}
+                      {expense.category?.name} • {formatDate(expense.expectedDate)}
                       {isOverdue && <span className="text-red-600 font-medium ml-2">(Vencido)</span>}
                     </p>
                   </div>
                   <span className={`font-bold ${isOverdue ? 'text-red-600' : 'text-gray-900'}`}>
-                    {expense.currency} ${parseFloat(expense.amount || 0).toFixed(2)}
+                    {expense.currency} ${formatAmount(expense.amount)}
                   </span>
                 </div>
               );

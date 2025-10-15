@@ -181,6 +181,24 @@ const ExpectedExpenses = () => {
     return new Date(expectedDate) < new Date() && new Date(expectedDate).toDateString() !== new Date().toDateString();
   };
 
+  // Formatear fecha sin problemas de zona horaria
+  const formatDate = (dateString) => {
+    const date = new Date(dateString + 'T00:00:00');
+    return date.toLocaleDateString('es-ES', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    });
+  };
+
+  // Formatear monto para mostrar
+  const formatAmountDisplay = (amount) => {
+    return parseFloat(amount || 0).toLocaleString('en-US', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    });
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
@@ -270,14 +288,14 @@ const ExpectedExpenses = () => {
                       <Clock size={16} className="text-red-500" />
                     )}
                     <span className={isOverdue(expense.expectedDate) && expense.status === 'pending' ? 'text-red-600 font-semibold' : 'text-gray-900'}>
-                      {new Date(expense.expectedDate).toLocaleDateString()}
+                      {formatDate(expense.expectedDate)}
                     </span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                   <span className="flex items-center gap-1">
                     <span className="text-xs font-medium text-gray-600">{expense.currency || 'USD'}</span>
-                    ${parseFloat(expense.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ${formatAmountDisplay(expense.amount)}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
