@@ -3,6 +3,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import ConfirmModal from '../components/ConfirmModal';
 
 const Transactions = () => {
   const { user } = useAuth();
@@ -11,6 +12,15 @@ const Transactions = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [period, setPeriod] = useState('1'); // Filtro de período
+  
+  // Estado para modal de confirmación
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    onConfirm: null
+  });
   const [formData, setFormData] = useState({
     type: 'expense',
     amount: '',
@@ -158,16 +168,25 @@ const Transactions = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Seguro que deseas eliminar esta transacción?')) return;
-
-    try {
-      await axios.delete(`/api/transactions/${id}`);
-      toast.success('Transacción eliminada');
-      fetchTransactions();
-    } catch (error) {
-      toast.error('Error al eliminar transacción');
-    }
+  const handleDelete = (id) => {
+    const transaction = transactions.find(t => (t.id || t._id) === id);
+    const desc = transaction?.description || 'esta transacción';
+    
+    setConfirmModal({
+      isOpen: true,
+      title: 'Eliminar Transacción',
+      message: `¿Seguro que deseas eliminar "${desc}"?\n\nEsta acción no se puede deshacer.`,
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await axios.delete(`/api/transactions/${id}`);
+          toast.success('Transacción eliminada');
+          fetchTransactions();
+        } catch (error) {
+          toast.error('Error al eliminar transacción');
+        }
+      }
+    });
   };
 
   return (
@@ -385,6 +404,16 @@ const Transactions = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Confirmación */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+      />
     </div>
   );
 };

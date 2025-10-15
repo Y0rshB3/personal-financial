@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 const Categories = () => {
   const [categories, setCategories] = useState([]);
@@ -13,6 +14,15 @@ const Categories = () => {
     icon: '📁',
     color: '#3B82F6',
     budget: 0
+  });
+  
+  // Estado para modal de confirmación
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    onConfirm: null
   });
 
   const iconOptions = ['💰', '🍔', '🏠', '🚗', '🎮', '💊', '🎓', '✈️', '🛒', '📱', '⚡', '📁'];
@@ -63,16 +73,25 @@ const Categories = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Seguro que deseas eliminar esta categoría?')) return;
-
-    try {
-      await axios.delete(`/api/categories/${id}`);
-      toast.success('Categoría eliminada');
-      fetchCategories();
-    } catch (error) {
-      toast.error('Error al eliminar categoría');
-    }
+  const handleDelete = (id) => {
+    const category = categories.find(c => (c.id || c._id) === id);
+    const name = category?.name || 'esta categoría';
+    
+    setConfirmModal({
+      isOpen: true,
+      title: 'Eliminar Categoría',
+      message: `¿Seguro que deseas eliminar "${name}"?\n\n⚠️ Las transacciones asociadas no se eliminarán, pero quedarán sin categoría.`,
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await axios.delete(`/api/categories/${id}`);
+          toast.success('Categoría eliminada');
+          fetchCategories();
+        } catch (error) {
+          toast.error('Error al eliminar categoría');
+        }
+      }
+    });
   };
 
   return (
@@ -230,6 +249,16 @@ const Categories = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Confirmación */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+      />
     </div>
   );
 };
