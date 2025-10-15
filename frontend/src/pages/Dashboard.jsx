@@ -56,9 +56,19 @@ const Dashboard = () => {
   }, [period]);
 
   const getDateRange = () => {
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - parseInt(period));
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    // Calcular mes de inicio
+    const monthsToSubtract = parseInt(period) - 1; // -1 porque incluimos el mes actual
+    const startMonth = currentMonth - monthsToSubtract;
+    
+    // Fecha de inicio: Día 1 del mes calculado
+    const startDate = new Date(currentYear, startMonth, 1);
+    
+    // Fecha de fin: Último día del mes actual
+    const endDate = new Date(currentYear, currentMonth + 1, 0); // Día 0 del próximo mes = último día del mes actual
     
     return {
       startDate: startDate.toISOString().split('T')[0],
