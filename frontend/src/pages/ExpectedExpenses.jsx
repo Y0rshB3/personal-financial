@@ -183,7 +183,19 @@ const ExpectedExpenses = () => {
 
   // Formatear fecha sin problemas de zona horaria
   const formatDate = (dateString) => {
-    const date = new Date(dateString + 'T00:00:00');
+    if (!dateString) return 'Sin fecha';
+    
+    let date;
+    if (dateString.includes('T')) {
+      date = new Date(dateString);
+    } else {
+      date = new Date(dateString + 'T00:00:00');
+    }
+    
+    if (isNaN(date.getTime())) {
+      return 'Fecha inválida';
+    }
+    
     return date.toLocaleDateString('es-ES', { 
       year: 'numeric', 
       month: '2-digit', 

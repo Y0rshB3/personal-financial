@@ -44,7 +44,22 @@ const Transactions = () => {
 
   // Formatear fecha sin problemas de zona horaria
   const formatDate = (dateString) => {
-    const date = new Date(dateString + 'T00:00:00'); // Forzar hora local
+    if (!dateString) return 'Sin fecha';
+    
+    let date;
+    // Si ya incluye hora, usar directamente
+    if (dateString.includes('T')) {
+      date = new Date(dateString);
+    } else {
+      // Si es solo fecha, agregar hora local
+      date = new Date(dateString + 'T00:00:00');
+    }
+    
+    // Verificar si la fecha es válida
+    if (isNaN(date.getTime())) {
+      return 'Fecha inválida';
+    }
+    
     return date.toLocaleDateString('es-ES', { 
       year: 'numeric', 
       month: '2-digit', 
