@@ -35,6 +35,7 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/currencies', require('./routes/currencies'));
 app.use('/api/pdfs', require('./routes/pdfs'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/expected-expenses', require('./routes/expectedExpenses'));
 
 // Health check
 app.get('/health', (req, res) => {

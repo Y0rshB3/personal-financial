@@ -10,6 +10,7 @@ import Transactions from './pages/Transactions';
 import Categories from './pages/Categories';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import ExpectedExpenses from './pages/ExpectedExpenses';
 import Layout from './components/Layout';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
           <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/transactions" element={<Transactions />} />
+            <Route path="/expected-expenses" element={<ExpectedExpenses />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<Settings />} />

@@ -7,7 +7,8 @@ import {
   FolderKanban, 
   FileText, 
   Settings, 
-  LogOut 
+  LogOut,
+  CalendarClock
 } from 'lucide-react';
 
 const Layout = () => {
@@ -16,6 +17,7 @@ const Layout = () => {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Transacciones', path: '/transactions', icon: ArrowLeftRight },
+    { name: 'Gastos Esperados', path: '/expected-expenses', icon: CalendarClock },
     { name: 'Categorías', path: '/categories', icon: FolderKanban },
     { name: 'Reportes', path: '/reports', icon: FileText },
     { name: 'Configuración', path: '/settings', icon: Settings },

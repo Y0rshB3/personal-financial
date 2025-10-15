@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Chart as ChartJS, ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
-import { TrendingUp, TrendingDown, DollarSign, CreditCard } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, CreditCard, CalendarClock, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Link } from 'react-router-dom';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const Dashboard = () => {
   const [stats, setStats] = useState({ income: 0, expense: 0, balance: 0, transactions: 0 });
   const [transactions, setTransactions] = useState([]);
+  const [expectedExpenses, setExpectedExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('1'); // Meses: 1, 2, 3, 4, 6, 12
 
@@ -33,13 +35,15 @@ const Dashboard = () => {
     try {
       const { startDate, endDate } = getDateRange();
       
-      const [statsRes, transRes] = await Promise.all([
+      const [statsRes, transRes, expensesRes] = await Promise.all([
         axios.get(`/api/transactions/stats?startDate=${startDate}&endDate=${endDate}`),
-        axios.get(`/api/transactions?limit=5&startDate=${startDate}&endDate=${endDate}`)
+        axios.get(`/api/transactions?limit=5&startDate=${startDate}&endDate=${endDate}`),
+        axios.get('/api/expected-expenses?status=pending').catch(() => ({ data: { data: [] } }))
       ]);
 
       setStats(statsRes.data.data);
       setTransactions(transRes.data.data.slice(0, 5));
+      setExpectedExpenses(expensesRes.data.data.slice(0, 5));
     } catch (error) {
       toast.error('Error al cargar los datos');
     } finally {
@@ -118,7 +122,7 @@ const Dashboard = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         {/* Chart */}
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold mb-4">Distribución</h2>
@@ -157,6 +161,53 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Expected Expenses Section */}
+      {expectedExpenses.length > 0 && (
+        <div className="bg-white p-6 rounded-xl shadow-md">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <CalendarClock className="text-orange-500" />
+              Gastos Esperados Pendientes
+            </h2>
+            <Link 
+              to="/expected-expenses" 
+              className="text-primary hover:underline text-sm font-medium"
+            >
+              Ver todos
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {expectedExpenses.map((expense) => {
+              const isOverdue = new Date(expense.expectedDate) < new Date();
+              return (
+                <div 
+                  key={expense.id} 
+                  className={`flex items-center justify-between p-3 rounded-lg ${
+                    isOverdue ? 'bg-red-50 border border-red-200' : 'bg-gray-50'
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold">{expense.name}</p>
+                      {isOverdue && (
+                        <AlertCircle className="text-red-500" size={16} />
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      {expense.category?.name} • {new Date(expense.expectedDate).toLocaleDateString()}
+                      {isOverdue && <span className="text-red-600 font-medium ml-2">(Vencido)</span>}
+                    </p>
+                  </div>
+                  <span className={`font-bold ${isOverdue ? 'text-red-600' : 'text-gray-900'}`}>
+                    {expense.currency} ${parseFloat(expense.amount || 0).toFixed(2)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
