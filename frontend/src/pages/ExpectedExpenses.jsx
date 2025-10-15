@@ -3,6 +3,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, CheckCircle, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import ConfirmModal from '../components/ConfirmModal';
 
 const ExpectedExpenses = () => {
   const { user } = useAuth();
@@ -12,6 +13,15 @@ const ExpectedExpenses = () => {
   const [editingId, setEditingId] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all'); // all, pending, completed
   const [stats, setStats] = useState({});
+  
+  // Estados para modales de confirmación
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    onConfirm: null
+  });
   const [formData, setFormData] = useState({
     name: '',
     amount: '',
@@ -135,57 +145,69 @@ const ExpectedExpenses = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     const expense = expectedExpenses.find(e => e.id === id);
     const isCompleted = expense?.status === 'completed';
     
-    const confirmMessage = isCompleted
-      ? '¿Eliminar este gasto esperado?\n\n⚠️ Esto también eliminará la transacción asociada'
-      : '¿Seguro que deseas eliminar este gasto esperado?';
-    
-    if (!window.confirm(confirmMessage)) return;
-
-    try {
-      const response = await axios.delete(`/api/expected-expenses/${id}`);
-      toast.success(response.data.message || 'Gasto esperado eliminado');
-      fetchExpectedExpenses();
-      fetchStats();
-    } catch (error) {
-      toast.error('Error al eliminar gasto esperado');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Eliminar Gasto Esperado',
+      message: isCompleted
+        ? `¿Eliminar "${expense.name}"?\n\n⚠️ Esto también eliminará la transacción asociada`
+        : `¿Seguro que deseas eliminar "${expense.name}"?`,
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const response = await axios.delete(`/api/expected-expenses/${id}`);
+          toast.success(response.data.message || 'Gasto esperado eliminado');
+          fetchExpectedExpenses();
+          fetchStats();
+        } catch (error) {
+          toast.error('Error al eliminar gasto esperado');
+        }
+      }
+    });
   };
 
-  const handleComplete = async (expense) => {
+  const handleComplete = (expense) => {
     const hasRecurrence = expense.recurrence && expense.recurrence !== 'none';
-    const confirmMessage = hasRecurrence
-      ? `¿Marcar "${expense.name}" como realizado?\n\n✅ Se creará una transacción de gasto\n🔄 Se generará automáticamente el siguiente gasto esperado (${recurrenceOptions.find(r => r.value === expense.recurrence)?.label})`
-      : `¿Marcar "${expense.name}" como realizado? Esto creará una transacción de gasto.`;
+    const recurrenceLabel = recurrenceOptions.find(r => r.value === expense.recurrence)?.label;
     
-    if (!window.confirm(confirmMessage)) return;
-
-    try {
-      // No enviamos fecha, el backend usará la expectedDate del gasto esperado
-      const response = await axios.post(`/api/expected-expenses/${expense.id}/complete`, {
-        amount: expense.amount,
-        currency: expense.currency,
-        description: expense.description
-        // date se omite intencionalmente para usar expectedDate
-      });
-      
-      // Mostrar mensaje según si se creó recurrencia
-      if (response.data.data.nextExpectedExpense) {
-        toast.success(`✅ Gasto completado\n💰 Transacción creada\n🔄 Próximo gasto generado automáticamente`, {
-          duration: 5000
-        });
-      } else {
-        toast.success('Gasto marcado como realizado y transacción creada');
+    const message = hasRecurrence
+      ? `¿Marcar "${expense.name}" como realizado?\n\n✅ Se creará una transacción de gasto\n🔄 Se generará automáticamente el siguiente gasto esperado (${recurrenceLabel})`
+      : `¿Marcar "${expense.name}" como realizado?\n\nSe creará una transacción de gasto.`;
+    
+    setConfirmModal({
+      isOpen: true,
+      title: 'Completar Gasto Esperado',
+      message,
+      type: 'success',
+      onConfirm: async () => {
+        try {
+          // No enviamos fecha, el backend usará la expectedDate del gasto esperado
+          const response = await axios.post(`/api/expected-expenses/${expense.id}/complete`, {
+            amount: expense.amount,
+            currency: expense.currency,
+            description: expense.description
+            // date se omite intencionalmente para usar expectedDate
+          });
+          
+          // Mostrar mensaje según si se creó recurrencia
+          if (response.data.data.nextExpectedExpense) {
+            toast.success(`✅ Gasto completado\n💰 Transacción creada\n🔄 Próximo gasto generado automáticamente`, {
+              duration: 5000
+            });
+          } else {
+            toast.success('Gasto marcado como realizado y transacción creada');
+          }
+          
+          fetchExpectedExpenses();
+          fetchStats();
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Error al completar gasto esperado');
+        }
       }
-      
-      fetchExpectedExpenses();
-      fetchStats();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al completar gasto esperado');
-    }
+    });
   };
 
   const resetForm = () => {
@@ -518,6 +540,16 @@ const ExpectedExpenses = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Confirmación */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+      />
     </div>
   );
 };

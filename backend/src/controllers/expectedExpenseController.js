@@ -222,14 +222,15 @@ exports.completeExpectedExpense = async (req, res, next) => {
     }
 
     // Crear la transacción de gasto
-    // Usar la fecha esperada como fecha de la transacción por defecto
-    const transactionDate = req.body.date || expectedExpense.expectedDate || new Date();
+    // Usar la fecha actual (cuando realmente se realizó el gasto)
+    // La fecha esperada es solo referencia, la transacción se registra cuando se completa
+    const transactionDate = req.body.date || new Date();
     
     const transaction = await Transaction.create({
       type: 'expense',
       amount: req.body.amount || expectedExpense.amount,
       currency: req.body.currency || expectedExpense.currency,
-      description: req.body.description || expectedExpense.description || `Gasto esperado: ${expectedExpense.name}`,
+      description: req.body.description || expectedExpense.description || `${expectedExpense.name}`,
       date: transactionDate,
       source: 'manual',
       tags: expectedExpense.tags,
