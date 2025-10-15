@@ -2,6 +2,30 @@ const { ExpectedExpense, Category, Transaction } = require('../models/postgres')
 const ActivityLog = require('../models/mongodb/ActivityLog');
 const { Op } = require('sequelize');
 
+// Función auxiliar para calcular la próxima fecha según recurrencia
+const calculateNextDate = (currentDate, recurrence) => {
+  const date = new Date(currentDate);
+  
+  switch (recurrence) {
+    case 'daily':
+      date.setDate(date.getDate() + 1);
+      break;
+    case 'weekly':
+      date.setDate(date.getDate() + 7);
+      break;
+    case 'monthly':
+      date.setMonth(date.getMonth() + 1);
+      break;
+    case 'yearly':
+      date.setFullYear(date.getFullYear() + 1);
+      break;
+    default:
+      return date;
+  }
+  
+  return date;
+};
+
 // @desc    Get all expected expenses
 // @route   GET /api/expected-expenses
 // @access  Private
@@ -195,6 +219,36 @@ exports.completeExpectedExpense = async (req, res, next) => {
       transactionId: transaction.id
     });
 
+    // Si tiene recurrencia, crear automáticamente el siguiente gasto esperado
+    let nextExpectedExpense = null;
+    if (expectedExpense.recurrence && expectedExpense.recurrence !== 'none') {
+      const nextDate = calculateNextDate(expectedExpense.expectedDate, expectedExpense.recurrence);
+      
+      nextExpectedExpense = await ExpectedExpense.create({
+        name: expectedExpense.name,
+        amount: expectedExpense.amount,
+        currency: expectedExpense.currency,
+        description: expectedExpense.description,
+        expectedDate: nextDate,
+        recurrence: expectedExpense.recurrence,
+        tags: expectedExpense.tags,
+        userId: req.user.id,
+        categoryId: expectedExpense.categoryId,
+        status: 'pending'
+      });
+
+      // Log creación automática
+      await ActivityLog.create({
+        userId: req.user.id,
+        action: 'create_expected_expense',
+        details: { 
+          expectedExpenseId: nextExpectedExpense.id,
+          auto_generated: true,
+          from_recurrence: expectedExpense.id
+        }
+      });
+    }
+
     // Log activity
     await ActivityLog.create({
       userId: req.user.id,
@@ -202,15 +256,20 @@ exports.completeExpectedExpense = async (req, res, next) => {
       details: { 
         expectedExpenseId: expectedExpense.id,
         transactionId: transaction.id,
-        amount: transaction.amount
+        amount: transaction.amount,
+        next_generated: nextExpectedExpense ? nextExpectedExpense.id : null
       }
     });
 
     res.json({ 
       success: true, 
+      message: nextExpectedExpense 
+        ? 'Gasto completado y siguiente gasto esperado creado automáticamente' 
+        : 'Gasto completado exitosamente',
       data: {
         expectedExpense,
-        transaction
+        transaction,
+        nextExpectedExpense
       }
     });
   } catch (error) {

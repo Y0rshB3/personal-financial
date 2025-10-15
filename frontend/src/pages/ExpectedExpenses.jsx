@@ -149,16 +149,30 @@ const ExpectedExpenses = () => {
   };
 
   const handleComplete = async (expense) => {
-    if (!window.confirm(`¿Marcar "${expense.name}" como realizado? Esto creará una transacción de gasto.`)) return;
+    const hasRecurrence = expense.recurrence && expense.recurrence !== 'none';
+    const confirmMessage = hasRecurrence
+      ? `¿Marcar "${expense.name}" como realizado?\n\n✅ Se creará una transacción de gasto\n🔄 Se generará automáticamente el siguiente gasto esperado (${recurrenceOptions.find(r => r.value === expense.recurrence)?.label})`
+      : `¿Marcar "${expense.name}" como realizado? Esto creará una transacción de gasto.`;
+    
+    if (!window.confirm(confirmMessage)) return;
 
     try {
-      await axios.post(`/api/expected-expenses/${expense.id}/complete`, {
+      const response = await axios.post(`/api/expected-expenses/${expense.id}/complete`, {
         amount: expense.amount,
         currency: expense.currency,
         description: expense.description,
         date: new Date()
       });
-      toast.success('Gasto marcado como realizado y transacción creada');
+      
+      // Mostrar mensaje según si se creó recurrencia
+      if (response.data.data.nextExpectedExpense) {
+        toast.success(`✅ Gasto completado\n💰 Transacción creada\n🔄 Próximo gasto generado automáticamente`, {
+          duration: 5000
+        });
+      } else {
+        toast.success('Gasto marcado como realizado y transacción creada');
+      }
+      
       fetchExpectedExpenses();
       fetchStats();
     } catch (error) {
@@ -465,6 +479,12 @@ const ExpectedExpenses = () => {
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
+                {formData.recurrence && formData.recurrence !== 'none' && (
+                  <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                    <span>🔄</span>
+                    Al marcar como completado, se creará automáticamente el siguiente gasto esperado
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-3 pt-4">
