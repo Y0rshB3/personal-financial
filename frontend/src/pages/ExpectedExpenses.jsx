@@ -90,11 +90,19 @@ const ExpectedExpenses = () => {
     e.preventDefault();
 
     try {
+      // Convertir fecha local a ISO string manteniendo la fecha seleccionada
+      const localDate = new Date(formData.expectedDate + 'T12:00:00');
+      
+      const dataToSend = {
+        ...formData,
+        expectedDate: localDate.toISOString()
+      };
+
       if (editingId) {
-        await axios.put(`/api/expected-expenses/${editingId}`, formData);
+        await axios.put(`/api/expected-expenses/${editingId}`, dataToSend);
         toast.success('Gasto esperado actualizado');
       } else {
-        await axios.post('/api/expected-expenses', formData);
+        await axios.post('/api/expected-expenses', dataToSend);
         toast.success('Gasto esperado creado');
       }
 
@@ -181,26 +189,26 @@ const ExpectedExpenses = () => {
     return new Date(expectedDate) < new Date() && new Date(expectedDate).toDateString() !== new Date().toDateString();
   };
 
-  // Formatear fecha sin problemas de zona horaria
+  // Formatear fecha usando zona horaria local del navegador
   const formatDate = (dateString) => {
     if (!dateString) return 'Sin fecha';
     
-    let date;
-    if (dateString.includes('T')) {
-      date = new Date(dateString);
-    } else {
-      date = new Date(dateString + 'T00:00:00');
-    }
-    
-    if (isNaN(date.getTime())) {
+    try {
+      const date = new Date(dateString);
+      
+      if (isNaN(date.getTime())) {
+        return 'Fecha inválida';
+      }
+      
+      return date.toLocaleDateString('es-ES', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit',
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      });
+    } catch (error) {
       return 'Fecha inválida';
     }
-    
-    return date.toLocaleDateString('es-ES', { 
-      year: 'numeric', 
-      month: '2-digit', 
-      day: '2-digit' 
-    });
   };
 
   // Formatear monto para mostrar

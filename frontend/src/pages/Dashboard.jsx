@@ -15,26 +15,26 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('1'); // Meses: 1, 2, 3, 4, 6, 12
 
-  // Formatear fecha sin problemas de zona horaria
+  // Formatear fecha usando zona horaria local del navegador
   const formatDate = (dateString) => {
     if (!dateString) return 'Sin fecha';
     
-    let date;
-    if (dateString.includes('T')) {
-      date = new Date(dateString);
-    } else {
-      date = new Date(dateString + 'T00:00:00');
-    }
-    
-    if (isNaN(date.getTime())) {
+    try {
+      const date = new Date(dateString);
+      
+      if (isNaN(date.getTime())) {
+        return 'Fecha inválida';
+      }
+      
+      return date.toLocaleDateString('es-ES', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit',
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      });
+    } catch (error) {
       return 'Fecha inválida';
     }
-    
-    return date.toLocaleDateString('es-ES', { 
-      year: 'numeric', 
-      month: '2-digit', 
-      day: '2-digit' 
-    });
   };
 
   // Formatear número con separadores de miles

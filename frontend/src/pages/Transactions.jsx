@@ -42,29 +42,29 @@ const Transactions = () => {
     setDisplayAmount(formatNumber(finalValue));
   };
 
-  // Formatear fecha sin problemas de zona horaria
+  // Formatear fecha usando zona horaria local del navegador
   const formatDate = (dateString) => {
     if (!dateString) return 'Sin fecha';
     
-    let date;
-    // Si ya incluye hora, usar directamente
-    if (dateString.includes('T')) {
-      date = new Date(dateString);
-    } else {
-      // Si es solo fecha, agregar hora local
-      date = new Date(dateString + 'T00:00:00');
-    }
-    
-    // Verificar si la fecha es válida
-    if (isNaN(date.getTime())) {
+    try {
+      // Crear fecha desde el string UTC y convertir a zona horaria local
+      const date = new Date(dateString);
+      
+      // Verificar si la fecha es válida
+      if (isNaN(date.getTime())) {
+        return 'Fecha inválida';
+      }
+      
+      // Formatear en zona horaria local del navegador
+      return date.toLocaleDateString('es-ES', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit',
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      });
+    } catch (error) {
       return 'Fecha inválida';
     }
-    
-    return date.toLocaleDateString('es-ES', { 
-      year: 'numeric', 
-      month: '2-digit', 
-      day: '2-digit' 
-    });
   };
 
   const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'MXN', 'ARS', 'COP', 'CLP'];
@@ -108,6 +108,9 @@ const Transactions = () => {
     e.preventDefault();
 
     try {
+      // Convertir fecha local a ISO string manteniendo la fecha seleccionada
+      const localDate = new Date(formData.date + 'T12:00:00'); // Usar mediodía para evitar cambios de día
+      
       // Preparar datos para enviar al backend
       const dataToSend = {
         type: formData.type,
@@ -115,7 +118,7 @@ const Transactions = () => {
         currency: formData.currency,
         categoryId: formData.category, // Cambiar 'category' a 'categoryId'
         description: formData.description,
-        date: formData.date
+        date: localDate.toISOString() // Enviar como ISO string con zona horaria
       };
 
       if (editingId) {
