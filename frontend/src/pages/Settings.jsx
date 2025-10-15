@@ -9,7 +9,8 @@ const Settings = () => {
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    currency: user?.currency || 'USD'
+    currency: user?.currency || 'USD',
+    timezone: user?.timezone || 'auto'
   });
   const [loading, setLoading] = useState(false);
   const [processingPdf, setProcessingPdf] = useState(false);
@@ -21,6 +22,29 @@ const Settings = () => {
   const [categories, setCategories] = useState([]);
 
   const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'MXN', 'ARS', 'COP', 'CLP'];
+  
+  // Zonas horarias más comunes
+  const timezones = [
+    { value: 'auto', label: '🌐 Automática (Detectar del navegador)' },
+    { value: 'America/New_York', label: '🇺🇸 Nueva York (EST/EDT)' },
+    { value: 'America/Chicago', label: '🇺🇸 Chicago (CST/CDT)' },
+    { value: 'America/Denver', label: '🇺🇸 Denver (MST/MDT)' },
+    { value: 'America/Los_Angeles', label: '🇺🇸 Los Ángeles (PST/PDT)' },
+    { value: 'America/Mexico_City', label: '🇲🇽 Ciudad de México' },
+    { value: 'America/Bogota', label: '🇨🇴 Bogotá' },
+    { value: 'America/Lima', label: '🇵🇪 Lima' },
+    { value: 'America/Santiago', label: '🇨🇱 Santiago' },
+    { value: 'America/Buenos_Aires', label: '🇦🇷 Buenos Aires' },
+    { value: 'America/Sao_Paulo', label: '🇧🇷 São Paulo' },
+    { value: 'Europe/London', label: '🇬🇧 Londres (GMT/BST)' },
+    { value: 'Europe/Paris', label: '🇫🇷 París (CET/CEST)' },
+    { value: 'Europe/Madrid', label: '🇪🇸 Madrid (CET/CEST)' },
+    { value: 'Europe/Berlin', label: '🇩🇪 Berlín (CET/CEST)' },
+    { value: 'Asia/Tokyo', label: '🇯🇵 Tokio (JST)' },
+    { value: 'Asia/Shanghai', label: '🇨🇳 Shanghái (CST)' },
+    { value: 'Asia/Dubai', label: '🇦🇪 Dubái (GST)' },
+    { value: 'Australia/Sydney', label: '🇦🇺 Sídney (AEDT/AEST)' },
+  ];
 
   // Cargar categorías al montar el componente
   React.useEffect(() => {
@@ -244,6 +268,24 @@ const Settings = () => {
                   <option key={curr} value={curr}>{curr}</option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Zona Horaria</label>
+              <select
+                value={formData.timezone}
+                onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
+                className="w-full px-4 py-2 border rounded-lg"
+              >
+                {timezones.map((tz) => (
+                  <option key={tz.value} value={tz.value}>{tz.label}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {formData.timezone === 'auto' 
+                  ? `Detectada: ${Intl.DateTimeFormat().resolvedOptions().timeZone}` 
+                  : 'Las fechas se mostrarán en esta zona horaria'}
+              </p>
             </div>
 
             <button

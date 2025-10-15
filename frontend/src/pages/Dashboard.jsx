@@ -5,17 +5,19 @@ import { Pie, Bar } from 'react-chartjs-2';
 import { TrendingUp, TrendingDown, DollarSign, CreditCard, CalendarClock, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const [stats, setStats] = useState({ income: 0, expense: 0, balance: 0, transactions: 0 });
   const [transactions, setTransactions] = useState([]);
   const [expectedExpenses, setExpectedExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('1'); // Meses: 1, 2, 3, 4, 6, 12
 
-  // Formatear fecha usando zona horaria local del navegador
+  // Formatear fecha usando zona horaria configurada o del navegador
   const formatDate = (dateString) => {
     if (!dateString) return 'Sin fecha';
     
@@ -26,11 +28,15 @@ const Dashboard = () => {
         return 'Fecha inválida';
       }
       
+      const timezone = user?.timezone === 'auto' || !user?.timezone
+        ? Intl.DateTimeFormat().resolvedOptions().timeZone
+        : user.timezone;
+      
       return date.toLocaleDateString('es-ES', { 
         year: 'numeric', 
         month: '2-digit', 
         day: '2-digit',
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        timeZone: timezone
       });
     } catch (error) {
       return 'Fecha inválida';

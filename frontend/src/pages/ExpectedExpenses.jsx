@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, CheckCircle, Clock } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const ExpectedExpenses = () => {
+  const { user } = useAuth();
   const [expectedExpenses, setExpectedExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -189,7 +191,7 @@ const ExpectedExpenses = () => {
     return new Date(expectedDate) < new Date() && new Date(expectedDate).toDateString() !== new Date().toDateString();
   };
 
-  // Formatear fecha usando zona horaria local del navegador
+  // Formatear fecha usando zona horaria configurada o del navegador
   const formatDate = (dateString) => {
     if (!dateString) return 'Sin fecha';
     
@@ -200,11 +202,15 @@ const ExpectedExpenses = () => {
         return 'Fecha inválida';
       }
       
+      const timezone = user?.timezone === 'auto' || !user?.timezone
+        ? Intl.DateTimeFormat().resolvedOptions().timeZone
+        : user.timezone;
+      
       return date.toLocaleDateString('es-ES', { 
         year: 'numeric', 
         month: '2-digit', 
         day: '2-digit',
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        timeZone: timezone
       });
     } catch (error) {
       return 'Fecha inválida';

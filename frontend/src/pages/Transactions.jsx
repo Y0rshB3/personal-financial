@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Transactions = () => {
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -42,25 +44,27 @@ const Transactions = () => {
     setDisplayAmount(formatNumber(finalValue));
   };
 
-  // Formatear fecha usando zona horaria local del navegador
+  // Formatear fecha usando zona horaria configurada o del navegador
   const formatDate = (dateString) => {
     if (!dateString) return 'Sin fecha';
     
     try {
-      // Crear fecha desde el string UTC y convertir a zona horaria local
       const date = new Date(dateString);
       
-      // Verificar si la fecha es válida
       if (isNaN(date.getTime())) {
         return 'Fecha inválida';
       }
       
-      // Formatear en zona horaria local del navegador
+      // Determinar zona horaria: user config o navegador
+      const timezone = user?.timezone === 'auto' || !user?.timezone
+        ? Intl.DateTimeFormat().resolvedOptions().timeZone
+        : user.timezone;
+      
       return date.toLocaleDateString('es-ES', { 
         year: 'numeric', 
         month: '2-digit', 
         day: '2-digit',
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        timeZone: timezone
       });
     } catch (error) {
       return 'Fecha inválida';

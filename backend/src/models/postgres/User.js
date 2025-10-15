@@ -42,6 +42,11 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING(3),
     defaultValue: 'USD'
   },
+  timezone: {
+    type: DataTypes.STRING(50),
+    defaultValue: 'auto',
+    comment: 'Zona horaria del usuario. "auto" usa la zona horaria del navegador'
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
