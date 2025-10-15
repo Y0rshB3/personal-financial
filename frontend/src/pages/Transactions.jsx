@@ -223,7 +223,7 @@ const Transactions = () => {
                 <label className="block text-sm font-medium mb-2">Tipo</label>
                 <select
                   value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value, category: '' })}
                   className="w-full px-3 py-2 border rounded-lg"
                   required
                 >
@@ -273,6 +273,12 @@ const Transactions = () => {
                     </option>
                   ))}
                 </select>
+                {categories.filter(c => c.type === formData.type).length === 0 && (
+                  <p className="text-xs text-red-500 mt-1">
+                    No hay categorías de tipo {formData.type === 'income' ? 'ingreso' : 'gasto'}. 
+                    Crea una en la sección Categorías.
+                  </p>
+                )}
               </div>
 
               <div>
