@@ -20,6 +20,27 @@ const ExpectedExpenses = () => {
     recurrence: 'none',
     tags: []
   });
+  const [displayAmount, setDisplayAmount] = useState('');
+
+  // Formatear número con separadores de miles
+  const formatNumber = (value) => {
+    if (!value) return '';
+    const cleanValue = value.replace(/[^\d.]/g, '');
+    const parts = cleanValue.split('.');
+    const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return parts.length > 1 ? `${integerPart}.${parts[1].slice(0, 2)}` : integerPart;
+  };
+
+  // Manejar cambio en el campo de monto
+  const handleAmountChange = (e) => {
+    const value = e.target.value;
+    const cleanValue = value.replace(/[^\d.]/g, '');
+    const parts = cleanValue.split('.');
+    const finalValue = parts.length > 1 ? `${parts[0]}.${parts[1].slice(0, 2)}` : cleanValue;
+    
+    setFormData({ ...formData, amount: finalValue });
+    setDisplayAmount(formatNumber(finalValue));
+  };
 
   const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'MXN', 'ARS', 'COP', 'CLP'];
   const recurrenceOptions = [
@@ -89,9 +110,10 @@ const ExpectedExpenses = () => {
 
   const handleEdit = (expense) => {
     setEditingId(expense.id);
+    const amount = expense.amount.toString();
     setFormData({
       name: expense.name,
-      amount: expense.amount,
+      amount: amount,
       currency: expense.currency || 'USD',
       categoryId: expense.category?.id || expense.categoryId,
       description: expense.description || '',
@@ -99,6 +121,7 @@ const ExpectedExpenses = () => {
       recurrence: expense.recurrence || 'none',
       tags: expense.tags || []
     });
+    setDisplayAmount(formatNumber(amount));
     setShowModal(true);
   };
 
@@ -144,6 +167,7 @@ const ExpectedExpenses = () => {
       recurrence: 'none',
       tags: []
     });
+    setDisplayAmount('');
   };
 
   const getStatusBadge = (status) => {
@@ -325,11 +349,11 @@ const ExpectedExpenses = () => {
               <div>
                 <label className="block text-sm font-medium mb-2">Monto *</label>
                 <input
-                  type="number"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  type="text"
+                  value={displayAmount}
+                  onChange={handleAmountChange}
+                  placeholder="0.00"
+                  className="w-full px-3 py-2 border rounded-lg font-mono"
                   required
                 />
               </div>

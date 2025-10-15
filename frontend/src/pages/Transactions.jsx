@@ -17,6 +17,30 @@ const Transactions = () => {
     description: '',
     date: new Date().toISOString().split('T')[0]
   });
+  const [displayAmount, setDisplayAmount] = useState(''); // Para mostrar el monto formateado
+
+  // Formatear número con separadores de miles
+  const formatNumber = (value) => {
+    if (!value) return '';
+    // Remover todo excepto números y punto decimal
+    const cleanValue = value.replace(/[^\d.]/g, '');
+    const parts = cleanValue.split('.');
+    const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return parts.length > 1 ? `${integerPart}.${parts[1].slice(0, 2)}` : integerPart;
+  };
+
+  // Manejar cambio en el campo de monto
+  const handleAmountChange = (e) => {
+    const value = e.target.value;
+    // Remover todo excepto números y punto
+    const cleanValue = value.replace(/[^\d.]/g, '');
+    // Limitar a 2 decimales
+    const parts = cleanValue.split('.');
+    const finalValue = parts.length > 1 ? `${parts[0]}.${parts[1].slice(0, 2)}` : cleanValue;
+    
+    setFormData({ ...formData, amount: finalValue });
+    setDisplayAmount(formatNumber(finalValue));
+  };
 
   const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'MXN', 'ARS', 'COP', 'CLP'];
 
@@ -80,6 +104,7 @@ const Transactions = () => {
       setShowModal(false);
       setEditingId(null);
       setFormData({ type: 'expense', amount: '', currency: 'USD', category: '', description: '', date: new Date().toISOString().split('T')[0] });
+      setDisplayAmount('');
       fetchTransactions();
     } catch (error) {
       toast.error('Error al guardar transacción');
@@ -88,14 +113,16 @@ const Transactions = () => {
 
   const handleEdit = (transaction) => {
     setEditingId(transaction.id || transaction._id);
+    const amount = transaction.amount.toString();
     setFormData({
       type: transaction.type,
-      amount: transaction.amount,
+      amount: amount,
       currency: transaction.currency || 'USD',
       category: transaction.category?.id || transaction.category?._id || transaction.categoryId,
       description: transaction.description,
       date: new Date(transaction.date).toISOString().split('T')[0]
     });
+    setDisplayAmount(formatNumber(amount));
     setShowModal(true);
   };
 
@@ -235,11 +262,11 @@ const Transactions = () => {
               <div>
                 <label className="block text-sm font-medium mb-2">Monto</label>
                 <input
-                  type="number"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  type="text"
+                  value={displayAmount}
+                  onChange={handleAmountChange}
+                  placeholder="0.00"
+                  className="w-full px-3 py-2 border rounded-lg font-mono"
                   required
                 />
               </div>
@@ -315,6 +342,7 @@ const Transactions = () => {
                     setShowModal(false);
                     setEditingId(null);
                     setFormData({ type: 'expense', amount: '', currency: 'USD', category: '', description: '', date: new Date().toISOString().split('T')[0] });
+                    setDisplayAmount('');
                   }}
                   className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
                 >
