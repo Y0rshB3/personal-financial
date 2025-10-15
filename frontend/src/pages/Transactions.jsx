@@ -59,11 +59,21 @@ const Transactions = () => {
     e.preventDefault();
 
     try {
+      // Preparar datos para enviar al backend
+      const dataToSend = {
+        type: formData.type,
+        amount: formData.amount,
+        currency: formData.currency,
+        categoryId: formData.category, // Cambiar 'category' a 'categoryId'
+        description: formData.description,
+        date: formData.date
+      };
+
       if (editingId) {
-        await axios.put(`/api/transactions/${editingId}`, formData);
+        await axios.put(`/api/transactions/${editingId}`, dataToSend);
         toast.success('Transacción actualizada');
       } else {
-        await axios.post('/api/transactions', formData);
+        await axios.post('/api/transactions', dataToSend);
         toast.success('Transacción creada');
       }
 
